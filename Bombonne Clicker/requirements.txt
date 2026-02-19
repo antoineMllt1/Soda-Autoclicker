@@ -1,0 +1,8 @@
+pypresence
+pywin32
+dearpygui
+psutil
+asyncio
+keyboard
+ping3
+pywebview

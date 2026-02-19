@@ -1,18 +1,19 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# # Python
+# __pycache__/
+# *.py[cod]
+# *$py.class
+# 
+# # Build and Dist
+# build/
+# dist/
+# *.spec
+# *.exe
+# 
+# # Config
+# config.json
+# 
+# # Other
+# .vscode/
+# .idea/
+# *.log
 
-# Build and Dist
-build/
-dist/
-*.spec
-*.exe
-
-# Config
-config.json
-
-# Other
-.vscode/
-.idea/
-*.log

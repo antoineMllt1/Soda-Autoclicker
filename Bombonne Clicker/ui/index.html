@@ -1,0 +1,1435 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bombonne Clicker</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #0a0a0e;
+        --sidebar: #0f0f14;
+        --card: #131318;
+        --border: #1a1a22;
+        --text: #e0e0e8;
+        --muted: #6a6a7a;
+        --accent: #7b2fff;
+        --accent2: #a855f7;
+        --toggle-off: #2a2a35;
+        --hover: #1a1a25;
+        --input-bg: #16161d;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+        height: 100vh;
+        user-select: none;
+      }
+      .app {
+        display: flex;
+        height: 100vh;
+      }
+
+      /* ═══ SIDEBAR ═══ */
+      .sidebar {
+        width: 200px;
+        background: var(--sidebar);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        flex-shrink: 0;
+      }
+      .brand {
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand h1 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+      .brand h1 span {
+        color: var(--accent);
+      }
+      .brand-sub {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 2px;
+        letter-spacing: 0.5px;
+      }
+      .nav-section {
+        padding: 16px 12px 6px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+      }
+      .nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        margin: 2px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--muted);
+        transition: all 0.15s;
+      }
+      .nav-item:hover {
+        background: var(--hover);
+        color: var(--text);
+      }
+      .nav-item.active {
+        background: linear-gradient(135deg, var(--accent), #5b1fd4);
+        color: #fff;
+        font-weight: 500;
+      }
+      .nav-item svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .sidebar-footer {
+        padding: 14px 16px;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .sidebar-footer .version {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      /* ═══ MAIN CONTENT ═══ */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .page-header {
+        padding: 20px 28px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .page-title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .page-title small {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 28px;
+      }
+
+      /* ═══ PANELS ═══ */
+      .panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 18px 20px;
+      }
+      .panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--accent);
+        margin-bottom: 14px;
+      }
+      .panel-full {
+        grid-column: 1/3;
+      }
+
+      /* ═══ SETTING ROW ═══ */
+      .setting {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        min-height: 36px;
+      }
+      .setting + .setting {
+        border-top: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      .setting-label {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text);
+      }
+      .setting-desc {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+
+      /* ═══ TOGGLE SWITCH ═══ */
+      .toggle {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        display: none;
+      }
+      .toggle-track {
+        position: absolute;
+        inset: 0;
+        background: var(--toggle-off);
+        border-radius: 11px;
+        transition: background 0.2s;
+      }
+      .toggle-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #555;
+        transition: all 0.2s;
+      }
+      .toggle input:checked + .toggle-track {
+        background: var(--accent);
+      }
+      .toggle input:checked + .toggle-track .toggle-thumb {
+        left: 21px;
+        background: #fff;
+      }
+
+      /* ═══ SLIDER ═══ */
+      .slider-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .slider-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        min-width: 28px;
+        text-align: right;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 160px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--toggle-off);
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        box-shadow: 0 0 8px rgba(123, 47, 255, 0.4);
+      }
+
+      /* ═══ SELECT / DROPDOWN ═══ */
+      .select {
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 28px 6px 10px;
+        font-size: 12px;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236a6a7a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+      }
+      .select:focus {
+        border-color: var(--accent);
+      }
+
+      /* ═══ BUTTON ═══ */
+      .btn {
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+        background: rgba(123, 47, 255, 0.1);
+      }
+      .btn-accent {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 500;
+      }
+      .btn-accent:hover {
+        background: #6a22ee;
+      }
+      .btn-danger {
+        border-color: #ff3355;
+        color: #ff3355;
+      }
+      .btn-danger:hover {
+        background: rgba(255, 51, 85, 0.1);
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      /* ═══ KEYBIND ═══ */
+      .keybind {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        color: var(--accent);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        min-width: 70px;
+        text-align: center;
+      }
+      .keybind:hover {
+        border-color: var(--accent);
+      }
+      .keybind.listening {
+        border-color: #ff3355;
+        color: #ff3355;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* ═══ PAGE SECTIONS ═══ */
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
+
+      /* ═══ SCROLLBAR ═══ */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent);
+      }
+
+      /* ═══ CONFIG CARD ═══ */
+      .config-card {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 10px;
+        transition: border-color 0.15s;
+      }
+      .config-card:hover {
+        border-color: var(--accent);
+      }
+      .config-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .config-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="brand" style="display:flex;align-items:center;gap:12px">
+          <img src="logo.png" style="width:32px;height:32px;border-radius:6px;box-shadow:0 0 10px rgba(123,47,255,0.3)">
+          <div>
+            <h1 style="font-size:14px;letter-spacing:1.5px;margin:0">BOMBONN<span style="color:var(--accent)">E</span></h1>
+            <div class="brand-sub" style="margin:0;font-size:9px">PREMIUM CLIENT</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-section">Clicker</div>
+          <div
+            class="nav-item active"
+            data-page="left"
+            onclick="switchPage('left', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M6 19V5a2 2 0 012-2h8a2 2 0 012 2v14l-5-3-5 3z" />
+            </svg>
+            Left Clicker
+          </div>
+          <div
+            class="nav-item"
+            data-page="right"
+            onclick="switchPage('right', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 19V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14l5-3 5 3z" />
+            </svg>
+            Right Clicker
+          </div>
+          <div class="nav-section">Tools</div>
+          <div
+            class="nav-item"
+            data-page="recorder"
+            onclick="switchPage('recorder', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+            </svg>
+            Recorder
+          </div>
+          <div
+            class="nav-item"
+            data-page="potions"
+            onclick="switchPage('potions', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 3h6v3H9zM6 21l3-12h6l3 12H6z" />
+            </svg>
+            Potions
+          </div>
+          <div
+            class="nav-item"
+            data-page="movement"
+            onclick="switchPage('movement', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            Movement
+          </div>
+          <div class="nav-section">System</div>
+          <div
+            class="nav-item"
+            data-page="misc"
+            onclick="switchPage('misc', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              />
+            </svg>
+            Settings
+          </div>
+          <div
+            class="nav-item"
+            data-page="config"
+            onclick="switchPage('config', this)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <path d="M14 2v6h6" />
+            </svg>
+            Configs
+          </div>
+        </div>
+        <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:12px">A</div>
+        <div>
+          <div style="font-weight:600;color:var(--text);font-size:12px">Antoine</div>
+          <div style="font-size:10px;color:var(--muted)">Pro Subscription</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px">
+        <span class="version">Bombonne Premium</span>
+        <span style="color:var(--muted)">v2.2.0</span>
+      </div>
+    </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div class="main">
+        <div class="page-header">
+          <div class="page-title" id="pageTitle">
+            Left Clicker<small>Main autoclicker settings</small>
+          </div>
+        </div>
+        <div class="content">
+          <!-- ═══ LEFT CLICKER ═══ -->
+          <div class="page active" id="page-left">
+            <div class="panels">
+              <div class="panel">
+                <div class="panel-title">Controls</div>
+                <div class="setting">
+                  <span class="setting-label">Enabled</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftEnabled"
+                      onchange="setVal('left', 'enabled', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Keybind</span>
+                  <div
+                    class="keybind"
+                    id="leftBind"
+                    onclick="startBind('left')"
+                  >
+                    NONE
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Mode</span>
+                  <select
+                    class="select"
+                    id="leftMode"
+                    onchange="setVal('left', 'mode', this.value)"
+                  >
+                    <option>Hold</option>
+                    <option>Always</option>
+                  </select>
+                </div>
+                <div class="setting">
+                  <div><div class="setting-label">Clicks per Second</div></div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="leftCPS"
+                      min="1"
+                      max="50"
+                      value="12"
+                      oninput="
+                        setVal('left', 'averageCPS', +this.value);
+                        document.getElementById('leftCPSVal').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="leftCPSVal">12</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Combat</div>
+                <div class="setting">
+                  <span class="setting-label">BlockHit</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftBlockHit"
+                      onchange="setVal('left', 'blockHit', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">BlockHit Chance</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="leftBHChance"
+                      min="1"
+                      max="100"
+                      value="50"
+                      oninput="
+                        setVal('left', 'blockHitChance', +this.value);
+                        document.getElementById('leftBHVal').textContent =
+                          this.value + '%';
+                      "
+                    /><span class="slider-val" id="leftBHVal">50%</span>
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">BlockHit Mode</span>
+                  <select
+                    class="select"
+                    id="leftBHType"
+                    onchange="setVal('left', 'bhType', this.value)"
+                  >
+                    <option>V1</option>
+                    <option>V2</option>
+                    <option>V3</option>
+                  </select>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Break Blocks</span>
+                  <select
+                    class="select"
+                    id="leftBreakBlocks"
+                    onchange="setVal('left', 'breakBlocks', this.value)"
+                  >
+                    <option>None</option>
+                    <option>Full</option>
+                    <option>Shift With Click</option>
+                    <option>Shift No Click</option>
+                  </select>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Effects</div>
+                <div class="setting">
+                  <span class="setting-label">Shake Effect</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftShake"
+                      onchange="setVal('left', 'shakeEffect', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">Shake Force</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="leftShakeForce"
+                      min="1"
+                      max="20"
+                      value="5"
+                      oninput="
+                        setVal('left', 'shakeEffectForce', +this.value);
+                        document.getElementById('leftShakeVal').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="leftShakeVal">5</span>
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Click Sound</span>
+                  <select
+                    class="select"
+                    id="leftSound"
+                    onchange="
+                      setVal('left', 'soundPath', 'resource\\\\' + this.value)
+                    "
+                  ></select>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Options</div>
+                <div class="setting">
+                  <span class="setting-label">Only In Game</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftFocused"
+                      onchange="
+                        setVal('left', 'onlyWhenFocused', this.checked)
+                      " />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">RMB Lock</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftRMBLock"
+                      onchange="setVal('left', 'RMBLock', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Work in Menus</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftMenus"
+                      onchange="setVal('left', 'workInMenus', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Blatant Mode</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftBlatant"
+                      onchange="setVal('left', 'blatant', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Auto Rod</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="leftAutoRod"
+                      onchange="setVal('left', 'AutoRod', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ RIGHT CLICKER ═══ -->
+          <div class="page" id="page-right">
+            <div class="panels">
+              <div class="panel">
+                <div class="panel-title">Controls</div>
+                <div class="setting">
+                  <span class="setting-label">Enabled</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightEnabled"
+                      onchange="setVal('right', 'enabled', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Keybind</span>
+                  <div
+                    class="keybind"
+                    id="rightBind"
+                    onclick="startBind('right')"
+                  >
+                    NONE
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Mode</span>
+                  <select
+                    class="select"
+                    id="rightMode"
+                    onchange="setVal('right', 'mode', this.value)"
+                  >
+                    <option>Hold</option>
+                    <option>Always</option>
+                  </select>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">Clicks per Second</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="rightCPS"
+                      min="1"
+                      max="50"
+                      value="12"
+                      oninput="
+                        setVal('right', 'averageCPS', +this.value);
+                        document.getElementById('rightCPSVal').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="rightCPSVal">12</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Options</div>
+                <div class="setting">
+                  <span class="setting-label">Shake Effect</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightShake"
+                      onchange="setVal('right', 'shakeEffect', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">LMB Lock</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightLMBLock"
+                      onchange="setVal('right', 'LMBLock', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Only In Game</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightFocused"
+                      onchange="
+                        setVal('right', 'onlyWhenFocused', this.checked)
+                      " />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Work in Menus</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightMenus"
+                      onchange="setVal('right', 'workInMenus', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Blatant Mode</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="rightBlatant"
+                      onchange="setVal('right', 'blatant', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ RECORDER ═══ -->
+          <div class="page" id="page-recorder">
+            <div class="panels">
+              <div class="panel panel-full">
+                <div class="panel-title">Click Recorder</div>
+                <div class="setting">
+                  <span class="setting-label">Enable Recorder</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="recorderEnabled"
+                      onchange="setVal('recorder', 'enabled', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label"
+                    >Record your clicks to produce undetectable patterns</span
+                  >
+                  <div class="btn-row">
+                    <button
+                      class="btn btn-accent"
+                      onclick="api('startRecording')"
+                    >
+                      Start
+                    </button>
+                    <button
+                      class="btn btn-danger"
+                      onclick="api('stopRecording')"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Status</span
+                  ><span
+                    id="recorderStatus"
+                    style="color: var(--muted); font-size: 13px"
+                    >Idle</span
+                  >
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Average CPS</span
+                  ><span
+                    id="recorderCPS"
+                    style="
+                      color: var(--accent);
+                      font-size: 13px;
+                      font-weight: 600;
+                    "
+                    >—</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ POTIONS ═══ -->
+          <div class="page" id="page-potions">
+            <div class="panels">
+              <div class="panel">
+                <div class="panel-title">Potion Settings</div>
+                <div class="setting">
+                  <span class="setting-label">Enabled</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="potEnabled"
+                      onchange="setVal('potions', 'enabled', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Throw Keybind</span>
+                  <div class="keybind" id="potBind" onclick="startBind('pot')">
+                    NONE
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Reset Keybind</span>
+                  <div
+                    class="keybind"
+                    id="potResetBind"
+                    onclick="startBind('potReset')"
+                  >
+                    NONE
+                  </div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Slots</div>
+                <div class="setting">
+                  <div class="setting-label">Low Slot</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="potLow"
+                      min="1"
+                      max="9"
+                      value="1"
+                      oninput="
+                        setVal('potions', 'lowestSlot', +this.value);
+                        document.getElementById('potLowVal').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="potLowVal">1</span>
+                  </div>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">High Slot</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="potHigh"
+                      min="1"
+                      max="9"
+                      value="9"
+                      oninput="
+                        setVal('potions', 'highestSlot', +this.value);
+                        document.getElementById('potHighVal').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="potHighVal">9</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ MOVEMENT ═══ -->
+          <div class="page" id="page-movement">
+            <div class="panels">
+              <div class="panel">
+                <div class="panel-title">Movement</div>
+                <div class="setting">
+                  <span class="setting-label">Auto W-Tap</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="movWTap"
+                      onchange="setVal('movement', 'autoWTap', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">W-Tap Value</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="movWTapVal"
+                      min="1"
+                      max="100"
+                      value="50"
+                      oninput="
+                        setVal('movement', 'wTapValue', +this.value);
+                        document.getElementById('movWTapV').textContent =
+                          this.value;
+                      "
+                    /><span class="slider-val" id="movWTapV">50</span>
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">W-Tap Mode</span>
+                  <select
+                    class="select"
+                    id="movWTapMode"
+                    onchange="setVal('movement', 'wTapMode', this.value)"
+                  >
+                    <option value="chance">Chance</option>
+                    <option value="delay">Delay</option>
+                  </select>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Features</div>
+                <div class="setting">
+                  <span class="setting-label">Auto Sprint</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="movSprint"
+                      onchange="
+                        setVal('movement', 'autoSprint', this.checked)
+                      " />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Better Input</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="movInput"
+                      onchange="
+                        setVal('movement', 'betterInput', this.checked)
+                      " />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Fast Stop</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="movStop"
+                      onchange="setVal('movement', 'fastStop', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ MISC / SETTINGS ═══ -->
+          <div class="page" id="page-misc">
+            <div class="panels">
+              <div class="panel">
+                <div class="panel-title">General</div>
+                <div class="setting">
+                  <span class="setting-label">Save Settings</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="miscSave"
+                      onchange="setVal('misc', 'saveSettings', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Always On Top</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="miscOnTop"
+                      onchange="api('toggleOnTop', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Discord RPC</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="miscRPC"
+                      onchange="
+                        setVal('misc', 'discordRichPresence', this.checked)
+                      " />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Toggle Sounds</span>
+                  <label class="toggle"
+                    ><input
+                      type="checkbox"
+                      id="miscSounds"
+                      onchange="setVal('misc', 'toggleSounds', this.checked)" />
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div></div
+                  ></label>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-title">Combat Tools</div>
+                <div class="setting">
+                  <span class="setting-label">Rod Keybind</span>
+                  <div class="keybind" id="rodBind" onclick="startBind('rod')">
+                    NONE
+                  </div>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Rod Slot</span>
+                  <select
+                    class="select"
+                    id="miscRodSlot"
+                    onchange="setVal('misc', 'rodSlot', this.value)"
+                  >
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option>6</option>
+                    <option>7</option>
+                    <option>8</option>
+                    <option>9</option>
+                  </select>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Sword Slot</span>
+                  <select
+                    class="select"
+                    id="miscSwordSlot"
+                    onchange="setVal('misc', 'swordSlot', this.value)"
+                  >
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option>6</option>
+                    <option>7</option>
+                    <option>8</option>
+                    <option>9</option>
+                  </select>
+                </div>
+                <div class="setting">
+                  <span class="setting-label">Pearl Keybind</span>
+                  <div
+                    class="keybind"
+                    id="pearlBind"
+                    onclick="startBind('pearl')"
+                  >
+                    NONE
+                  </div>
+                </div>
+                <div class="setting">
+                  <div class="setting-label">Ping</div>
+                  <div class="slider-wrap">
+                    <input
+                      type="range"
+                      id="miscPing"
+                      min="1"
+                      max="1000"
+                      value="100"
+                      oninput="
+                        setVal('misc', 'ping', +this.value);
+                        document.getElementById('miscPingVal').textContent =
+                          this.value + 'ms';
+                      "
+                    /><span class="slider-val" id="miscPingVal">100ms</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel panel-full">
+                <div class="panel-title">Danger Zone</div>
+                <div class="setting">
+                  <span class="setting-label"
+                    >Self Destruct — Remove all traces</span
+                  >
+                  <button class="btn btn-danger" onclick="api('selfDestruct')">
+                    Destruct
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ CONFIG MANAGER ═══ -->
+          <div class="page" id="page-config">
+            <div class="panels">
+              <div class="panel panel-full">
+                <div class="panel-title">Config Manager</div>
+                <div id="configList" style="margin-bottom: 12px">
+                  <div class="setting">
+                    <span class="setting-label" style="color: var(--muted)"
+                      >Loading configs...</span
+                    >
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn" onclick="api('openConfigFolder')">
+                    Open Folder
+                  </button>
+                  <button class="btn btn-accent" onclick="api('saveConfig')">
+                    Save Config
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const titles = {
+        left: "Left Clicker<small>Main autoclicker settings</small>",
+        right: "Right Clicker<small>Right click automation</small>",
+        recorder: "Recorder<small>Record natural click patterns</small>",
+        potions: "Potions<small>Potion throw automation</small>",
+        movement: "Movement<small>W-Tap, Sprint & Input</small>",
+        misc: "Settings<small>General preferences</small>",
+        config: "Config Manager<small>Load & save presets</small>",
+      };
+
+      function switchPage(id, el) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        document.getElementById("page-" + id).classList.add("active");
+        el.classList.add("active");
+        document.getElementById("pageTitle").innerHTML = titles[id] || id;
+        if (id === "config") loadConfigs();
+      }
+
+      function waitForApi(cb) {
+        if (window.pywebview && window.pywebview.api) {
+          cb();
+        } else {
+          setTimeout(() => waitForApi(cb), 100);
+        }
+      }
+
+      function setVal(section, key, value) {
+        waitForApi(() => window.pywebview.api.set_value(section, key, value));
+      }
+
+      function api(method, arg) {
+        waitForApi(() => {
+          if (window.pywebview.api[method]) {
+            if (arg !== undefined) window.pywebview.api[method](arg);
+            else window.pywebview.api[method]();
+          }
+        });
+      }
+
+      function startBind(type) {
+        const el = document.getElementById(type + "Bind");
+        if (!el) return;
+        el.classList.add("listening");
+        el.textContent = "...";
+        waitForApi(() => window.pywebview.api.start_bind(type));
+      }
+
+      function loadConfigs() {
+        waitForApi(async () => {
+          const configs = await window.pywebview.api.get_configs();
+          const el = document.getElementById("configList");
+          if (!configs || configs.length === 0) {
+            el.innerHTML =
+              '<div class="setting"><span class="setting-label" style="color:var(--muted)">No configs found</span></div>';
+            return;
+          }
+          el.innerHTML = configs
+            .map(
+              (c, i) =>
+                `<div class="config-card"><div class="config-name">${c.displayName || "Unnamed"}</div><div class="config-meta">${c.Author || "Unknown"} — ${c.description || ""}</div><div style="margin-top:8px"><button class="btn btn-accent" onclick="api('loadConfig',${i})">Load</button></div></div>`,
+            )
+            .join("");
+        });
+      }
+
+      function initUI() {
+        waitForApi(async () => {
+          const cfg = await window.pywebview.api.get_config();
+          if (!cfg) return;
+          const s = (id, v) => {
+            const e = document.getElementById(id);
+            if (e) {
+              if (e.type === "checkbox") e.checked = v;
+              else e.value = v;
+            }
+          };
+          const sv = (id, v) => {
+            const e = document.getElementById(id);
+            if (e) e.textContent = v;
+          };
+          // Left
+          s("leftEnabled", cfg.left.enabled);
+          s("leftMode", cfg.left.mode);
+          s("leftCPS", cfg.left.averageCPS);
+          sv("leftCPSVal", cfg.left.averageCPS);
+          s("leftBlockHit", cfg.left.blockHit);
+          s("leftBHChance", cfg.left.blockHitChance);
+          sv("leftBHVal", cfg.left.blockHitChance + "%");
+          s("leftBHType", cfg.left.bhType);
+          s("leftBreakBlocks", cfg.left.breakBlocks);
+          s("leftShake", cfg.left.shakeEffect);
+          s("leftShakeForce", cfg.left.shakeEffectForce);
+          sv("leftShakeVal", cfg.left.shakeEffectForce);
+          s("leftFocused", cfg.left.onlyWhenFocused);
+          s("leftRMBLock", cfg.left.RMBLock);
+          s("leftMenus", cfg.left.workInMenus);
+          s("leftBlatant", cfg.left.blatant);
+          s("leftAutoRod", cfg.left.AutoRod);
+          if (cfg.left.bind && cfg.left.bind !== 0)
+            document.getElementById("leftBind").textContent =
+              String.fromCharCode(cfg.left.bind);
+          // Right
+          s("rightEnabled", cfg.right.enabled);
+          s("rightMode", cfg.right.mode);
+          s("rightCPS", cfg.right.averageCPS);
+          sv("rightCPSVal", cfg.right.averageCPS);
+          s("rightShake", cfg.right.shakeEffect);
+          s("rightLMBLock", cfg.right.LMBLock);
+          s("rightFocused", cfg.right.onlyWhenFocused);
+          s("rightMenus", cfg.right.workInMenus);
+          s("rightBlatant", cfg.right.blatant);
+          if (cfg.right.bind && cfg.right.bind !== 0)
+            document.getElementById("rightBind").textContent =
+              String.fromCharCode(cfg.right.bind);
+          // Recorder
+          s("recorderEnabled", cfg.recorder.enabled);
+          // Potions
+          s("potEnabled", cfg.potions.enabled);
+          s("potLow", cfg.potions.lowestSlot);
+          sv("potLowVal", cfg.potions.lowestSlot);
+          s("potHigh", cfg.potions.highestSlot);
+          sv("potHighVal", cfg.potions.highestSlot);
+          if (cfg.potions.potBind && cfg.potions.potBind !== 0)
+            document.getElementById("potBind").textContent =
+              String.fromCharCode(cfg.potions.potBind);
+          if (cfg.potions.potResetBind && cfg.potions.potResetBind !== 0)
+            document.getElementById("potResetBind").textContent =
+              String.fromCharCode(cfg.potions.potResetBind);
+          // Movement
+          s("movWTap", cfg.movement.autoWTap);
+          s("movWTapVal", cfg.movement.wTapValue);
+          sv("movWTapV", cfg.movement.wTapValue);
+          s("movWTapMode", cfg.movement.wTapMode);
+          s("movSprint", cfg.movement.autoSprint);
+          s("movInput", cfg.movement.betterInput);
+          s("movStop", cfg.movement.fastStop);
+          // Misc
+          s("miscSave", cfg.misc.saveSettings);
+          s("miscRPC", cfg.misc.discordRichPresence);
+          s("miscSounds", cfg.misc.toggleSounds);
+          s("miscRodSlot", cfg.misc.rodSlot);
+          s("miscSwordSlot", cfg.misc.swordSlot);
+          s("miscPing", cfg.misc.ping);
+          sv("miscPingVal", cfg.misc.ping + "ms");
+          if (cfg.misc.rodBind && cfg.misc.rodBind !== 0)
+            document.getElementById("rodBind").textContent =
+              String.fromCharCode(cfg.misc.rodBind);
+          if (cfg.misc.pearlBind && cfg.misc.pearlBind !== 0)
+            document.getElementById("pearlBind").textContent =
+              String.fromCharCode(cfg.misc.pearlBind);
+          // Click sounds dropdown
+          const sounds = await window.pywebview.api.get_click_sounds();
+          const sel = document.getElementById("leftSound");
+          if (sel && sounds) {
+            sel.innerHTML = sounds.map((s) => `<option>${s}</option>`).join("");
+            sel.value = cfg.left.soundPath.replace("resource\\\\", "");
+          }
+        });
+      }
+      window.addEventListener("load", () => setTimeout(initUI, 300));
+    </script>
+  </body>
+</html>

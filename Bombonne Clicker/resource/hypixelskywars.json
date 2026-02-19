@@ -1,29 +1,28 @@
 {
     "left": {
-        "enabled": true,
+        "enabled": false,
         "mode": "Hold",
         "bind": 82,
         "averageCPS": 14,
         "onlyWhenFocused": true,
-        "breakBlocks": "Shift No Click",
+        "breakBlocks": "Shift With Click",
         "RMBLock": false,
         "blockHit": true,
-        "bhType": "V2",
-        "smartBH": 0,
-        "blockHitChance": 7,
+        "blockHitChance": 43,
+        "betterBlockHit": true,
         "shakeEffect": false,
         "shakeEffectForce": 5,
         "soundPath": "None",
         "workInMenus": false,
         "blatant": false,
         "AutoRod": false,
-        "AutoRodChance": 10
+        "AutoRodChance": 3
     },
     "right": {
         "enabled": true,
         "mode": "Hold",
         "bind": 89,
-        "averageCPS": 16,
+        "averageCPS": 30,
         "onlyWhenFocused": true,
         "LMBLock": false,
         "shakeEffect": false,
@@ -31,7 +30,7 @@
         "soundPath": "None",
         "workInMenus": false,
         "blatant": false,
-        "items": false
+        "items": true
     },
     "recorder": {
         "enabled": false,
@@ -54,12 +53,12 @@
         "switchDelay": 0.05,
         "rodBind": 88,
         "longRod": true,
-        "rodDelay": 0.25,
-        "rodSlot": "2",
+        "rodDelay": 0.2,
+        "rodSlot": "3",
         "pearlBind": 0,
         "pearlSlot": "8",
         "swordSlot": "1",
-        "theme": "beach_green",
+        "theme": "sakura",
         "red": 0,
         "green": 0,
         "blue": 0,
@@ -76,15 +75,15 @@
         "highestSlot": 9
     },
     "movement": {
-        "autoWTap": false,
-        "wTapMode": "chance",
-        "wTapValue": 30,
-        "autoSprint": false,
+        "autoWTap": true,
+        "wTapMode": "delay",
+        "wTapValue": 10,
+        "autoSprint": true,
         "betterInput": false,
         "fastStop": false
-    },    
-    "filename": "mmc",
-    "displayName": "Minemen Club",
-    "description": "Config for mmc - V1.5.6",
-    "Author": "Antoine"
+    },
+    "filename": "hypixelskywars",
+    "displayName": "Hypixel - Skywars",
+    "description": "Config for Skywarss on Hypixel - V1.5.6",
+    "Author": "4urxra"
 }

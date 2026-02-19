@@ -8,6 +8,12 @@ import ping3
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 refresh = False
+
+# Globals for external launcher support
+sodaClass = None
+checkboxToggleLeftClicker = "checkboxToggleLeftClicker"
+checkboxToggleRightClicker = "checkboxToggleRightClicker"
+guiWindows = 0
 class configListener(dict): # Detecting changes to config
     def __init__(self, initialDict):
         global refresh
@@ -28,21 +34,19 @@ class configListener(dict): # Detecting changes to config
 
         super().__setitem__(item, _value)
 
-        try: # Trash way of checking if soda class is initialized
-            sodaClass
-        except:
-            while True:
+        super().__setitem__(item, _value)
+
+        # Wait for sodaClass to be initialized
+        if sodaClass is None:
+            return
+
+        if hasattr(sodaClass, 'config') and "misc" in sodaClass.config and "saveSettings" in sodaClass.config["misc"]:
+            if sodaClass.config["misc"]["saveSettings"]:
                 try:
-                    sodaClass
-
-                    break
+                     json.dump(sodaClass.config, open(os.path.join(sodaClass.folder_path, "config.json"), "w", encoding="utf-8"), indent=4)
                 except:
-                    time.sleep(0.1)
+                     pass
 
-                    pass
-
-        if sodaClass.config["misc"]["saveSettings"]:
-            json.dump(sodaClass.config, open(os.path.join(sodaClass.folder_path, "config.json"), "w", encoding="utf-8"), indent=4)
 
 class soda():
     def __init__(self):
@@ -51,8 +55,8 @@ class soda():
                 "enabled": False,
                 "mode": "Hold",
                 "bind": 0,
-                "averageCPS": 18,
-                "onlyWhenFocused": True,
+                "averageCPS": 14,
+                "onlyWhenFocused": False,
                 "breakBlocks": "None",
                 "RMBLock": False,
                 "blockHit": False,
@@ -71,8 +75,8 @@ class soda():
                 "enabled": False,
                 "mode": "Hold",
                 "bind": 0,
-                "averageCPS": 12,
-                "onlyWhenFocused": True,
+                "averageCPS": 14,
+                "onlyWhenFocused": False,
                 "LMBLock": False,
                 "shakeEffect": False,
                 "shakeEffectForce": False,
@@ -170,6 +174,9 @@ class soda():
                         self.config["misc"]["saveSettings"] = False
                     else:
                         self.config = config
+                        # Force onlyWhenFocused to False for testing purposes
+                        self.config["left"]["onlyWhenFocused"] = False
+                        self.config["right"]["onlyWhenFocused"] = False
             except Exception as e:
                 print("Error loading config:", e)
                 print("Using default config")
@@ -276,8 +283,8 @@ class soda():
                 time.sleep(0.1)
                 continue
 
-            a_down = win32api.GetAsyncKeyState(0x41) < 0
-            d_down = win32api.GetAsyncKeyState(0x44) < 0
+            a_down = win32api.GetAsyncKeyState(0x41) & 0x8000
+            d_down = win32api.GetAsyncKeyState(0x44) & 0x8000
 
  
             if self.inputData["a"] and d_down:
@@ -300,13 +307,13 @@ class soda():
                 continue
 
             # Check if jump is pressed
-            if win32api.GetAsyncKeyState(0x20) < 0:
+            if win32api.GetAsyncKeyState(0x20) & 0x8000:
                 self.inputData2["jump"] = time.time()
 
-            w_down = win32api.GetAsyncKeyState(0x57) < 0
-            s_down = win32api.GetAsyncKeyState(0x53) < 0
-            a_down = win32api.GetAsyncKeyState(0x41) < 0
-            d_down = win32api.GetAsyncKeyState(0x44) < 0
+            w_down = win32api.GetAsyncKeyState(0x57) & 0x8000
+            s_down = win32api.GetAsyncKeyState(0x53) & 0x8000
+            a_down = win32api.GetAsyncKeyState(0x41) & 0x8000
+            d_down = win32api.GetAsyncKeyState(0x44) & 0x8000
 
             if(time.time() - self.inputData2["jump"] > 0.7 and time.time() - self.bIDate > 0.7):
                 skip = False
@@ -364,14 +371,16 @@ class soda():
             else:
                 delay = float(next(self.record))
 
-            if self.config["left"]["enabled"]:
-                if self.config["left"]["mode"] == "Hold" and not win32api.GetAsyncKeyState(0x01) < 0 or (win32api.GetAsyncKeyState(self.config["left"]["smartBH"]) != 0):
-                    time.sleep(delay)
-
-                    continue
+            should_click = self.config["left"]["enabled"]
             
+            if should_click and self.config["left"]["mode"] == "Hold":
+                 smartBH_Active = self.config["left"]["smartBH"] != 0 and (win32api.GetAsyncKeyState(self.config["left"]["smartBH"]) & 0x8000)
+                 if not (win32api.GetAsyncKeyState(0x01) & 0x8000) or smartBH_Active:
+                     should_click = False
+
+            if should_click:
                 if self.config["left"]["RMBLock"]:
-                    if win32api.GetAsyncKeyState(0x02) < 0:
+                    if win32api.GetAsyncKeyState(0x02) & 0x8000:
                         time.sleep(delay)
 
                         continue
@@ -390,9 +399,9 @@ class soda():
                             continue
 
                 if self.config["left"]["onlyWhenFocused"]:
-                    threading.Thread(target=self.leftClick, args=(True,), daemon=True).start()
+                    self.leftClick(True)
                 else:
-                    threading.Thread(target=self.leftClick, args=(None,), daemon=True).start()
+                    self.leftClick(None)
 
             time.sleep(delay)
     def doRod(self, val):
@@ -418,9 +427,9 @@ class soda():
         # Release the '2' key
         win32api.keybd_event(VK_2, 0, win32con.KEYEVENTF_KEYUP, 0)
         # Send Rod by right clicking
-        win32api.SendMessage(self.window, win32con.WM_RBUTTONDOWN, 0, 0)
-        time.sleep(0.02)
-        win32api.SendMessage(self.window, win32con.WM_RBUTTONUP, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0)
+        time.sleep(0.001)
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0)
         dly = float(self.config["misc"]["rodDelay"]) * 2 if val and self.config["misc"]["longRod"] else float(self.config["misc"]["rodDelay"])
         # dly = 0
         # if (val and self.config["misc"]["longRod"]):
@@ -478,20 +487,20 @@ class soda():
                 print("No Potions Left!")
 
     def clickLeft(self):
-        if self.config["left"]["breakBlocks"] == "Shift With Click" and win32api.GetAsyncKeyState(0x10) < 0:
-            win32api.SendMessage(self.window, win32con.WM_LBUTTONDOWN, 0, 0)
-            time.sleep(0.02)
+        if self.config["left"]["breakBlocks"] == "Shift With Click" and win32api.GetAsyncKeyState(0x10) & 0x8000:
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+            time.sleep(0.001)
             return False
-        if self.config["left"]["breakBlocks"] == "Shift No Click" and win32api.GetAsyncKeyState(0x10) < 0:
+        if self.config["left"]["breakBlocks"] == "Shift No Click" and win32api.GetAsyncKeyState(0x10) & 0x8000:
 
             return False
         if self.config["left"]["breakBlocks"] == "Full":
-            win32api.SendMessage(self.window, win32con.WM_LBUTTONDOWN, 0, 0)
-            time.sleep(0.02)
+            win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+            time.sleep(0.001)
             return False
-        win32api.SendMessage(self.window, win32con.WM_LBUTTONDOWN, 0, 0)
-        time.sleep(0.02)
-        win32api.SendMessage(self.window, win32con.WM_LBUTTONUP, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+        time.sleep(0.001)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
         return True
 
     def blockHit(self):
@@ -514,9 +523,9 @@ class soda():
             else:
                 # Chance-based blockhit (old behavior)
 
-                win32api.SendMessage(self.window, win32con.WM_RBUTTONDOWN, 0, 0)
+                win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0)
                 time.sleep(0.02)
-                win32api.SendMessage(self.window, win32con.WM_RBUTTONUP, 0, 0)
+                win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0)
 
     def leftClick(self, focused):
         print("hmmm")
@@ -554,29 +563,28 @@ class soda():
 
     def leftBindListener(self):
         while True:
-            if win32api.GetAsyncKeyState(self.config["left"]["bind"]) != 0:
-                if not self.isFocused("left", "onlyWhenFocused", "workInMenus"):
-                    time.sleep(0.001)
-                    continue
-
-                self.config["left"]["enabled"] = not self.config["left"]["enabled"]
-
-                self.toggleSound('left')
-
-                while True:
-                    try:
-                        dpg.set_value(checkboxToggleLeftClicker, not dpg.get_value(checkboxToggleLeftClicker))
-
-                        break
-                    except:
+            try:
+                # Check key usage if bind is valid (not 0 and not NONE)
+                bind = self.config["left"]["bind"]
+                if bind != 0 and win32api.GetAsyncKeyState(bind) & 0x8000:
+                    if not self.isFocused("left", "onlyWhenFocused", "workInMenus"):
                         time.sleep(0.1)
+                        continue
 
-                        pass
+                    # Toggle enabled state
+                    self.config["left"]["enabled"] = not self.config["left"]["enabled"]
+                    self.toggleSound('left')
+                    self.saveSettings() # Persist state for UI
+                    
+                    if hasattr(self, 'refresh_gui'):
+                        self.refresh_gui()
 
-                while win32api.GetAsyncKeyState(self.config["left"]["bind"]) != 0:
-                    time.sleep(0.001)
-
-            time.sleep(0.001)
+                    # Wait for key release to prevent rapid toggling
+                    while win32api.GetAsyncKeyState(bind) & 0x8000:
+                        time.sleep(0.01)
+            except:
+                pass
+            time.sleep(0.01)
 
     def rightClicker(self):
         while True:
@@ -585,15 +593,16 @@ class soda():
             else:
                 delay = random.random() % (2 / self.config["right"]["averageCPS"])
 
-            if self.config["right"]["enabled"]:
-                # Make sure smartBH's bind is not held
-                if self.config["right"]["mode"] == "Hold" and not win32api.GetAsyncKeyState(0x02) < 0 or (win32api.GetAsyncKeyState(self.config["left"]["smartBH"]) != 0):
-                    time.sleep(delay)
+            should_click = self.config["right"]["enabled"]
+            
+            if should_click and self.config["right"]["mode"] == "Hold":
+                 smartBH_Active = self.config["left"]["smartBH"] != 0 and (win32api.GetAsyncKeyState(self.config["left"]["smartBH"]) & 0x8000)
+                 if not (win32api.GetAsyncKeyState(0x02) & 0x8000) or smartBH_Active:
+                     should_click = False
 
-                    continue
-
+            if should_click:
                 if self.config["right"]["LMBLock"]:
-                    if win32api.GetAsyncKeyState(0x01) < 0:
+                    if win32api.GetAsyncKeyState(0x01) & 0x8000:
                         time.sleep(delay)
 
                         continue
@@ -612,9 +621,9 @@ class soda():
                             continue
 
                 if self.config["right"]["onlyWhenFocused"]:
-                    threading.Thread(target=self.rightClick, args=(True,), daemon=True).start()
+                    self.rightClick(True)
                 else:
-                    threading.Thread(target=self.rightClick, args=(None,), daemon=True).start()
+                    self.rightClick(None)
 
             time.sleep(delay)
     def doPearl(self):
@@ -639,9 +648,9 @@ class soda():
         # Release the '2' key
         win32api.keybd_event(VK_2, 0, win32con.KEYEVENTF_KEYUP, 0)
         # Send Rod by right clicking
-        win32api.SendMessage(self.window, win32con.WM_RBUTTONDOWN, 0, 0)
-        time.sleep(0.02)
-        win32api.SendMessage(self.window, win32con.WM_RBUTTONUP, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0)
+        time.sleep(0.001)
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0)
         # Switch back to slot 1
         VK_2 = char_to_vk.get(self.config["misc"]["swordSlot"], None)
         # Press the '2' key
@@ -650,18 +659,12 @@ class soda():
         # Release the '2' key
         win32api.keybd_event(VK_2, 0, win32con.KEYEVENTF_KEYUP, 0)        
     def rightClick(self, focused):
-        if focused != None:
-            win32api.SendMessage(self.window, win32con.WM_RBUTTONDOWN, 0, 0)
-            if not self.config["right"]["items"]:
-                time.sleep(0.02)
-                win32api.SendMessage(self.window, win32con.WM_RBUTTONUP, 0, 0)
-        else:
-            win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0)
-            if not self.config["right"]["items"]:
-                time.sleep(0.02)
-                win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0)
+        if not self.config["right"]["items"]:
+            time.sleep(0.001)
+            win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0)
 
-        if self.config["right"]["soundPath"] != "" and os.path.isfile(os.path.join(self.config["left"]["soundPath"])):
+        if self.config["right"]["soundPath"] != "" and os.path.isfile(os.path.join(self.folder_path, self.config["right"]["soundPath"])):
             threading.Thread(target=self.click, args=(), daemon=True).start()
 
         if self.config["right"]["shakeEffect"]:
@@ -680,29 +683,25 @@ class soda():
 
     def rightBindListener(self):
         while True:
-            if win32api.GetAsyncKeyState(self.config["right"]["bind"]) != 0:
-                if not self.isFocused("right", "onlyWhenFocused", "workInMenus"):
-                    time.sleep(0.001)
-                    continue
-
-                self.config["right"]["enabled"] = not self.config["right"]["enabled"]
-
-                self.toggleSound('right')
-
-                while True:
-                    try:
-                        dpg.set_value(checkboxToggleRightClicker, not dpg.get_value(checkboxToggleRightClicker))
-
-                        break
-                    except:
+            try:
+                bind = self.config["right"]["bind"]
+                if bind != 0 and win32api.GetAsyncKeyState(bind) & 0x8000:
+                    if not self.isFocused("right", "onlyWhenFocused", "workInMenus"):
                         time.sleep(0.1)
+                        continue
 
-                        pass
+                    self.config["right"]["enabled"] = not self.config["right"]["enabled"]
+                    self.toggleSound('right')
+                    self.saveSettings()
+                    
+                    if hasattr(self, 'refresh_gui'):
+                        self.refresh_gui()
 
-                while win32api.GetAsyncKeyState(self.config["right"]["bind"]) != 0:
-                    time.sleep(0.001)
-
-            time.sleep(0.001)
+                    while win32api.GetAsyncKeyState(bind) & 0x8000:
+                        time.sleep(0.01)
+            except:
+                pass
+            time.sleep(0.01)
 
     def smartBH(self):
         nums = [{0.21, 0.23, 0.24}, {0.05, 0.06}]
@@ -756,7 +755,7 @@ class soda():
 
                 
     def isFocused(self, config1: str, config2: str, config3: str):
-        return ("java" in self.focusedProcess or "AZ-Launcher" in self.focusedProcess or not self.config[config1][config2]) and (self.config[config1][config3] or win32gui.GetCursorInfo()[1] > 200000)
+        return ("java" in self.focusedProcess or "AZ-Launcher" in self.focusedProcess or not self.config[config1][config2])
     def bindListener(self):
         while True:
             if win32api.GetAsyncKeyState(self.config["misc"]["rodBind"]) != 0 and self.isFocused("left", "onlyWhenFocused", "workInMenus"):
@@ -783,9 +782,9 @@ class soda():
                 else:
                     print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nBetterRGB - 1.0.4 Beta\n\n\n\n\n\n")
                 if not self.config["misc"]["guiHidden"]:
-                    win32gui.ShowWindow(guiWindows, win32con.SW_SHOW)
+                    if guiWindows: win32gui.ShowWindow(guiWindows, win32con.SW_SHOW)
                 else:
-                    win32gui.ShowWindow(guiWindows, win32con.SW_HIDE)
+                    if guiWindows: win32gui.ShowWindow(guiWindows, win32con.SW_HIDE)
 
                 while win32api.GetAsyncKeyState(self.config["misc"]["bindHideGUI"]) != 0:
                     time.sleep(0.001)
@@ -852,12 +851,12 @@ class soda():
         self.configs = configs
         return configs
     
-    def loadConfig(self, configID: int):
-        print("Config Amount", len(self.configs), "\nConfig ID", configID)
-        cid = 0
-        if configID != 255:
-            cid = int((configID - 255) / 8) - 3
-        print("Config ID", cid)
+    def loadConfig(self, sender, app_data, user_data):
+        cid = user_data if user_data is not None else 0
+        print("Config Amount", len(self.configs), "\nConfig ID", cid)
+        if cid < 0 or cid >= len(self.configs):
+            print(f"[!] Invalid config index: {cid}")
+            return
         config = self.configs[cid]
         print(f"[!] Applying Config: {config['filename']}")
         file_path = os.path.join(self.folder_path, 'dev', f"{config['filename']}.json")
@@ -1363,20 +1362,25 @@ if __name__ == "__main__":
         try:
             dpg.create_context()
 
-            dpg.create_viewport(title=f"Bombonne Clicker {version}", width=900, height=700)
+            dpg.create_viewport(title=f"Bombonne Clicker {version}", width=900, height=700, small_icon="bombonne.ico", large_icon="bombonne.ico")
 
             def add_info(text):
-                # Helper to add (I) icon with tooltip
-                dpg.add_text("(I)", color=(100, 100, 255))
+                dpg.add_text("[?]", color=(88, 0, 230))
                 with dpg.tooltip(dpg.last_item()):
-                    dpg.add_text(text, wrap=400)
+                    dpg.add_text(text, wrap=350, color=(180, 180, 195))
 
             with dpg.window(tag="Primary Window"):
+                # ═══ BRANDED HEADER ═══
+                with dpg.group(horizontal=True):
+                    dpg.add_text("BOMBONNE", color=(120, 40, 255))
+                    dpg.add_text(f"  v{version}", color=(90, 90, 110))
+                dpg.add_separator()
+                dpg.add_spacer(height=6)
 
                 clicks = sodaClass.getClickSounds()
                 with dpg.tab_bar():
-                    with dpg.tab(label="Left Clicker"):
-                        dpg.add_spacer(width=75)
+                    with dpg.tab(label="  Left Clicker  "):
+                        dpg.add_spacer(height=6)
                         
                         with dpg.group(horizontal=True):
                             checkboxToggleLeftClicker = dpg.add_checkbox(label="Toggle", default_value=sodaClass.config["left"]["enabled"], callback=toggleLeftClicker)
@@ -1391,7 +1395,7 @@ if __name__ == "__main__":
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
-                            sliderLeftAverageCPS = dpg.add_slider_int(label="Average CPS", default_value=sodaClass.config["left"]["averageCPS"], min_value=1, max_value=20, width=200, callback=setLeftAverageCPS)
+                            sliderLeftAverageCPS = dpg.add_slider_int(label="Average CPS", default_value=sodaClass.config["left"]["averageCPS"], min_value=1, max_value=50, width=250, callback=setLeftAverageCPS)
                             add_info("Clicks Per Second (Average)")
 
                         dpg.add_spacer(width=75)
@@ -1475,7 +1479,7 @@ if __name__ == "__main__":
 
                         creditsText = dpg.add_text(default_value="Credits: Antoine (Developer)")
                         githubText = dpg.add_text(default_value="Bombonne Clicker")
-                    with dpg.tab(label="Right Clicker"):
+                    with dpg.tab(label="  Right Clicker  "):
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
@@ -1542,7 +1546,7 @@ if __name__ == "__main__":
 
                         creditsText = dpg.add_text(default_value="Credits: Antoine (Developer)")
                         githubText = dpg.add_text(default_value="Bombonne Clicker")                
-                    with dpg.tab(label="Recorder"):
+                    with dpg.tab(label="  Recorder  "):
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
@@ -1583,7 +1587,7 @@ if __name__ == "__main__":
 
                         creditsText = dpg.add_text(default_value="Credits: Antoine (Developer)")
                         githubText = dpg.add_text(default_value="Bombonne Clicker")                    
-                    with dpg.tab(label="Misc"):
+                    with dpg.tab(label="  Misc  "):
                         dpg.add_spacer(width=75)
                         dpg.add_button(label="Antoine's Profile", callback=lambda: print("Bombonne by Antoine"))
                         dpg.add_spacer(width=75)
@@ -1676,19 +1680,6 @@ if __name__ == "__main__":
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
-                            dpg.add_combo(label="Theme", items=["light", "dark", "sakura", "purple", "blue", "lightblue", "orange", "red", "beach_green", "forest_green", "custom"], width=100, default_value=sodaClass.config["misc"]["theme"], callback=setTheme)
-                            add_info("GUI Theme (Restart required)")
-
-                        with dpg.group(horizontal=True):
-                            dpg.add_slider_int(label="R", default_value=sodaClass.config["misc"]["red"], min_value=0, max_value=255, width=100, callback=setRed)
-                            dpg.add_slider_int(label="G", default_value=sodaClass.config["misc"]["green"], min_value=0, max_value=255, width=100, callback=setGreen)
-                            dpg.add_slider_int(label="B", default_value=sodaClass.config["misc"]["blue"], min_value=0, max_value=255, width=100, callback=setBlue)
-
-                        dpg.add_spacer(width=75)
-                        dpg.add_separator()
-                        dpg.add_spacer(width=75)
-
-                        with dpg.group(horizontal=True):
                             dpg.add_checkbox(label="Toggle Sounds", default_value=sodaClass.config["misc"]["toggleSounds"], callback=setToggleSounds)
                             add_info("Sound when toggling clicker on/off.")
                         
@@ -1708,7 +1699,7 @@ if __name__ == "__main__":
                         creditsText = dpg.add_text(default_value="Credits: Antoine (Developer)")
                         githubText = dpg.add_text(default_value="Bombonne Clicker")
 
-                    with dpg.tab(label="Potions"):
+                    with dpg.tab(label="  Potions  "):
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
@@ -1760,7 +1751,7 @@ if __name__ == "__main__":
                         creditsText = dpg.add_text(default_value="Credits: Antoine (Developer)")
                         githubText = dpg.add_text(default_value="Bombonne Clicker")
                     
-                    with dpg.tab(label="Movement"):
+                    with dpg.tab(label="  Movement  "):
                         dpg.add_spacer(width=75)
 
                         with dpg.group(horizontal=True):
@@ -1800,7 +1791,7 @@ if __name__ == "__main__":
                         dpg.add_spacer(width=75)
                         dpg.add_separator()
                         dpg.add_spacer(width=75)
-                    with dpg.tab(label="Config Manager"):
+                    with dpg.tab(label="  Config  "):
                         # Load all configs from the config folder
 
                         dpg.add_spacer(width=75)
@@ -1819,13 +1810,13 @@ if __name__ == "__main__":
                             dpg.add_spacer(width=75)
                             dpg.add_separator()
                             dpg.add_spacer(width=75)
-                            for config in configs:
+                            for idx, config in enumerate(configs):
                                 with dpg.group():
                                     # Display name
                                     dpg.add_text(default_value=config["displayName"])
                                     dpg.add_text(default_value=f"Author: {config['Author']}")
                                     dpg.add_text(default_value=f"Description: {config['description']}")
-                                    dpg.add_button(label="Load", callback=sodaClass.loadConfig, user_data=0)
+                                    dpg.add_button(label="Load", callback=sodaClass.loadConfig, user_data=idx)
                                     dpg.add_spacer(width=75)
                                     dpg.add_separator()
                                     dpg.add_spacer(width=75)
@@ -1850,34 +1841,74 @@ if __name__ == "__main__":
 
             with dpg.theme() as global_theme:
                 with dpg.theme_component(dpg.mvAll):
+                    # Spacing & Rounding - Vape V4 style
                     dpg.add_theme_style(dpg.mvStyleVar_WindowBorderSize, 0)
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
-                    dpg.add_theme_style(dpg.mvStyleVar_GrabRounding, 5)
-                    dpg.add_theme_style(dpg.mvStyleVar_GrabMinSize, 20)
-                    dpg.add_theme_style(dpg.mvStyleVar_TabRounding, 3)
+                    dpg.add_theme_style(dpg.mvStyleVar_ChildBorderSize, 1)
+                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 4)
+                    dpg.add_theme_style(dpg.mvStyleVar_GrabRounding, 4)
+                    dpg.add_theme_style(dpg.mvStyleVar_GrabMinSize, 14)
+                    dpg.add_theme_style(dpg.mvStyleVar_TabRounding, 2)
+                    dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 6)
+                    dpg.add_theme_style(dpg.mvStyleVar_FramePadding, 6, 4)
+                    dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 10, 6)
+                    dpg.add_theme_style(dpg.mvStyleVar_ItemInnerSpacing, 6, 4)
+                    dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 12, 12)
+                    dpg.add_theme_style(dpg.mvStyleVar_ScrollbarSize, 10)
+                    dpg.add_theme_style(dpg.mvStyleVar_ScrollbarRounding, 6)
+                    dpg.add_theme_style(dpg.mvStyleVar_TabBarBorderSize, 1)
                     
-                    # Dark Theme Colors
-                    dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (12, 12, 12))
-                    dpg.add_theme_color(dpg.mvThemeCol_ChildBg, (18, 18, 18))
-                    dpg.add_theme_color(dpg.mvThemeCol_PopupBg, (20, 20, 20))
-                    dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (35, 35, 35))
-                    dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, (50, 50, 50))
-                    dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (70, 70, 70))
-                    dpg.add_theme_color(dpg.mvThemeCol_TitleBg, (10, 10, 10))
-                    dpg.add_theme_color(dpg.mvThemeCol_TitleBgActive, (10, 10, 10))
-                    dpg.add_theme_color(dpg.mvThemeCol_Tab, (15, 15, 15))
-                    dpg.add_theme_color(dpg.mvThemeCol_TabActive, (100, 0, 255)) # Bombonne Purple
-                    dpg.add_theme_color(dpg.mvThemeCol_TabHovered, (120, 20, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (35, 35, 35))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (100, 0, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (80, 0, 200))
-                    dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (100, 0, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_SliderGrab, (100, 0, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_SliderGrabActive, (150, 50, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_Header, (35, 35, 35))
-                    dpg.add_theme_color(dpg.mvThemeCol_HeaderHovered, (50, 50, 50))
-                    dpg.add_theme_color(dpg.mvThemeCol_HeaderActive, (70, 70, 70))
-                    dpg.add_theme_color(dpg.mvThemeCol_Text, (220, 220, 220))
+                    # Dark Background Palette
+                    dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (10, 10, 14))
+                    dpg.add_theme_color(dpg.mvThemeCol_ChildBg, (16, 16, 22))
+                    dpg.add_theme_color(dpg.mvThemeCol_PopupBg, (18, 18, 24))
+                    dpg.add_theme_color(dpg.mvThemeCol_Border, (40, 40, 55))
+                    dpg.add_theme_color(dpg.mvThemeCol_BorderShadow, (0, 0, 0, 0))
+                    
+                    # Frame (inputs, sliders, combos)
+                    dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (28, 28, 38))
+                    dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, (38, 38, 52))
+                    dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (50, 40, 70))
+                    
+                    # Title Bar
+                    dpg.add_theme_color(dpg.mvThemeCol_TitleBg, (8, 8, 12))
+                    dpg.add_theme_color(dpg.mvThemeCol_TitleBgActive, (8, 8, 12))
+                    
+                    # Tabs - Vape accent
+                    dpg.add_theme_color(dpg.mvThemeCol_Tab, (18, 18, 26))
+                    dpg.add_theme_color(dpg.mvThemeCol_TabActive, (88, 0, 230))
+                    dpg.add_theme_color(dpg.mvThemeCol_TabHovered, (110, 20, 255))
+                    dpg.add_theme_color(dpg.mvThemeCol_TabUnfocused, (14, 14, 20))
+                    dpg.add_theme_color(dpg.mvThemeCol_TabUnfocusedActive, (60, 0, 160))
+                    
+                    # Buttons
+                    dpg.add_theme_color(dpg.mvThemeCol_Button, (30, 30, 42))
+                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (88, 0, 230))
+                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (70, 0, 190))
+                    
+                    # Interactive elements
+                    dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (120, 40, 255))
+                    dpg.add_theme_color(dpg.mvThemeCol_SliderGrab, (88, 0, 230))
+                    dpg.add_theme_color(dpg.mvThemeCol_SliderGrabActive, (130, 50, 255))
+                    
+                    # Headers & Collapsibles
+                    dpg.add_theme_color(dpg.mvThemeCol_Header, (30, 30, 42))
+                    dpg.add_theme_color(dpg.mvThemeCol_HeaderHovered, (44, 44, 60))
+                    dpg.add_theme_color(dpg.mvThemeCol_HeaderActive, (55, 40, 80))
+                    
+                    # Scrollbar
+                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarBg, (12, 12, 18))
+                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarGrab, (50, 50, 70))
+                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarGrabHovered, (88, 0, 230))
+                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarGrabActive, (120, 40, 255))
+                    
+                    # Separator
+                    dpg.add_theme_color(dpg.mvThemeCol_Separator, (35, 35, 50))
+                    dpg.add_theme_color(dpg.mvThemeCol_SeparatorHovered, (88, 0, 230))
+                    dpg.add_theme_color(dpg.mvThemeCol_SeparatorActive, (120, 40, 255))
+                    
+                    # Text
+                    dpg.add_theme_color(dpg.mvThemeCol_Text, (210, 210, 220))
+                    dpg.add_theme_color(dpg.mvThemeCol_TextDisabled, (90, 90, 110))
 
             dpg.bind_theme(global_theme)
 
